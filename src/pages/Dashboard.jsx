@@ -211,7 +211,7 @@ function Dashboard() {
     try {
       const payload = {
         ...form,
-        amount: Number(form.amount),
+        amount: Number(String(form.amount).replace(",", ".")),
       };
 
       if (editingTransaction) {
