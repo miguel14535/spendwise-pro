@@ -1,16 +1,63 @@
-# React + Vite
+# SpendWise Pro 💰
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Sistema financeiro Full Stack moderno para controle de receitas, despesas, relatórios e análise financeira.
 
-Currently, two official plugins are available:
+## 🚀 Tecnologias utilizadas
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+### Frontend
+- React
+- Vite
+- React Router DOM
+- Axios
+- Recharts
+- Framer Motion
+- React Hot Toast
+- React Icons
 
-## React Compiler
+### Backend
+- Node.js
+- Express
+- Sequelize
+- MySQL
+- JWT
+- Bcrypt
+- CORS
+- Dotenv
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## ✨ Funcionalidades
 
-## Expanding the ESLint configuration
+- Cadastro e login de usuários
+- Autenticação com JWT
+- Dashboard financeiro premium
+- CRUD completo de transações
+- Filtros por tipo, status, categoria e data
+- Gráficos financeiros reais
+- Relatórios com exportação PDF e Excel
+- Página de configurações
+- Sidebar colapsável
+- Loading skeleton
+- Notificações profissionais
+- Interface responsiva
+- Integração com banco MySQL
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 📊 Módulos
+
+### Dashboard
+Visualização geral do saldo, receitas, despesas, transações e gráficos mensais.
+
+### Relatórios
+Relatórios financeiros com exportação em PDF e Excel.
+
+### Configurações
+Gerenciamento de perfil, tema e sessão do usuário.
+
+## 🧠 Objetivo do projeto
+
+O SpendWise Pro foi desenvolvido como um sistema financeiro moderno com arquitetura Full Stack, focado em boas práticas, experiência de usuário e organização de código.
+
+## ⚙️ Como executar o projeto
+
+### 1. Clonar o repositório
+
+```bash
+git clone https://github.com/miguel14535/spendwise-pro.git
