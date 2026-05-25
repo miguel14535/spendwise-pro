@@ -1,76 +1,26 @@
-const express = require("express");
-const router = express.Router();
+const { DataTypes } = require("sequelize");
+const sequelize = require("../config/db.js");
 
-const Goal = require("../models/Goal");
+const Goal = sequelize.define("Goal", {
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
 
-router.get("/:userId", async (req, res) => {
-  try {
-    const goals = await Goal.findAll({
-      where: {
-        userId: req.params.userId,
-      },
-    });
+  targetAmount: {
+    type: DataTypes.FLOAT,
+    allowNull: false,
+  },
 
-    res.json(goals);
-  } catch (error) {
-    res.status(500).json({
-      message: "Erro ao buscar metas",
-    });
-  }
+  currentAmount: {
+    type: DataTypes.FLOAT,
+    defaultValue: 0,
+  },
+
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
 });
 
-router.post("/", async (req, res) => {
-  try {
-    const goal = await Goal.create(req.body);
-
-    res.status(201).json(goal);
-  } catch (error) {
-    res.status(500).json({
-      message: "Erro ao criar meta",
-    });
-  }
-});
-
-router.put("/:id", async (req, res) => {
-  try {
-    const goal = await Goal.findByPk(req.params.id);
-
-    if (!goal) {
-      return res.status(404).json({
-        message: "Meta não encontrada",
-      });
-    }
-
-    await goal.update(req.body);
-
-    res.json(goal);
-  } catch (error) {
-    res.status(500).json({
-      message: "Erro ao atualizar meta",
-    });
-  }
-});
-
-router.delete("/:id", async (req, res) => {
-  try {
-    const goal = await Goal.findByPk(req.params.id);
-
-    if (!goal) {
-      return res.status(404).json({
-        message: "Meta não encontrada",
-      });
-    }
-
-    await goal.destroy();
-
-    res.json({
-      message: "Meta removida",
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: "Erro ao deletar meta",
-    });
-  }
-});
-
-module.exports = router;
+module.exports = Goal;
