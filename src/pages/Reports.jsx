@@ -14,6 +14,7 @@ import {
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import toast, { Toaster } from "react-hot-toast";
 
 import api from "../services/api";
 import Sidebar from "../components/Sidebar";
@@ -28,6 +29,9 @@ function formatDate(date) {
 
 function Reports() {
   const [transactions, setTransactions] = useState([]);
+  const [category, setCategory] = useState("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   useEffect(() => {
     loadTransactions();
@@ -37,17 +41,58 @@ function Reports() {
     try {
       const { data } = await api.get("/transactions");
       setTransactions(data);
-    } catch {
-      alert("Erro ao carregar relatórios.");
+    } catch (error) {
+      console.log(error);
+      toast.error("Erro ao carregar relatórios.");
     }
   }
 
+  const categories = useMemo(() => {
+    return [...new Set(transactions.map((item) => item.category))];
+  }, [transactions]);
+
+  function isInsideDateRange(item) {
+    if (!startDate && !endDate) return true;
+    if (!item.date) return false;
+
+    const transactionDate = new Date(`${item.date}T00:00:00`);
+
+    if (startDate) {
+      const initialDate = new Date(`${startDate}T00:00:00`);
+
+      if (transactionDate < initialDate) {
+        return false;
+      }
+    }
+
+    if (endDate) {
+      const finalDate = new Date(`${endDate}T23:59:59`);
+
+      if (transactionDate > finalDate) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((item) => {
+      const matchesCategory =
+        category === "all" || item.category === category;
+
+      const matchesDate = isInsideDateRange(item);
+
+      return matchesCategory && matchesDate;
+    });
+  }, [transactions, category, startDate, endDate]);
+
   const totals = useMemo(() => {
-    const income = transactions
+    const income = filteredTransactions
       .filter((item) => item.type === "income")
       .reduce((acc, item) => acc + Number(item.amount), 0);
 
-    const expense = transactions
+    const expense = filteredTransactions
       .filter((item) => item.type === "expense")
       .reduce((acc, item) => acc + Number(item.amount), 0);
 
@@ -56,7 +101,7 @@ function Reports() {
       expense,
       balance: income - expense,
     };
-  }, [transactions]);
+  }, [filteredTransactions]);
 
   const pieData = [
     { name: "Receitas", value: totals.income },
@@ -66,7 +111,7 @@ function Reports() {
   const categoryData = useMemo(() => {
     const result = {};
 
-    transactions.forEach((item) => {
+    filteredTransactions.forEach((item) => {
       if (!result[item.category]) {
         result[item.category] = 0;
       }
@@ -74,11 +119,17 @@ function Reports() {
       result[item.category] += Number(item.amount);
     });
 
-    return Object.keys(result).map((category) => ({
-      category,
-      total: result[category],
+    return Object.keys(result).map((categoryName) => ({
+      category: categoryName,
+      total: result[categoryName],
     }));
-  }, [transactions]);
+  }, [filteredTransactions]);
+
+  function clearFilters() {
+    setCategory("all");
+    setStartDate("");
+    setEndDate("");
+  }
 
   function exportPDF() {
     const doc = new jsPDF();
@@ -90,13 +141,21 @@ function Reports() {
     doc.text(`Receitas: ${formatCurrency(totals.income)}`, 20, 40);
     doc.text(`Despesas: ${formatCurrency(totals.expense)}`, 20, 50);
     doc.text(`Saldo: ${formatCurrency(totals.balance)}`, 20, 60);
+    doc.text(`Transações filtradas: ${filteredTransactions.length}`, 20, 70);
 
-    let y = 80;
+    let y = 90;
 
-    transactions.forEach((item) => {
+    filteredTransactions.forEach((item) => {
+      if (y > 280) {
+        doc.addPage();
+        y = 20;
+      }
+
       doc.text(
         `${formatDate(item.date)} | ${item.description} | ${
           item.category
+        } | ${item.type === "income" ? "Receita" : "Despesa"} | ${
+          item.status
         } | ${formatCurrency(Number(item.amount))}`,
         20,
         y
@@ -109,7 +168,7 @@ function Reports() {
   }
 
   function exportExcel() {
-    const formattedTransactions = transactions.map((item) => ({
+    const formattedTransactions = filteredTransactions.map((item) => ({
       Data: formatDate(item.date),
       Descrição: item.description,
       Categoria: item.category,
@@ -138,6 +197,8 @@ function Reports() {
 
   return (
     <div className="app">
+      <Toaster position="top-right" />
+
       <Sidebar />
 
       <main className="main-content">
@@ -150,6 +211,56 @@ function Reports() {
             <p>Análise financeira avançada das suas transações.</p>
           </div>
         </header>
+
+        <section className="report-filters">
+          <div>
+            <label>Categoria</label>
+
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              <option value="all">Todas categorias</option>
+
+              {categories.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label>Data inicial</label>
+
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label>Data final</label>
+
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
+
+          <button className="clear-filters-btn" onClick={clearFilters}>
+            Limpar filtros
+          </button>
+        </section>
+
+        <div className="results-info">
+          <span>
+            Exibindo <strong>{filteredTransactions.length}</strong> de{" "}
+            <strong>{transactions.length}</strong> transações
+          </span>
+        </div>
 
         <section className="cards">
           <div className="card income">
@@ -170,6 +281,13 @@ function Reports() {
             <div>
               <h3>Saldo Final</h3>
               <h2>{formatCurrency(totals.balance)}</h2>
+            </div>
+          </div>
+
+          <div className="card reports">
+            <div>
+              <h3>Transações</h3>
+              <h2>{filteredTransactions.length}</h2>
             </div>
           </div>
         </section>
@@ -203,7 +321,9 @@ function Reports() {
                     ))}
                   </Pie>
 
-                  <Tooltip />
+                  <Tooltip
+                    formatter={(value) => formatCurrency(Number(value))}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -216,8 +336,10 @@ function Reports() {
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={categoryData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                  <XAxis dataKey="category" />
-                  <Tooltip />
+                  <XAxis dataKey="category" stroke="#94a3b8" />
+                  <Tooltip
+                    formatter={(value) => formatCurrency(Number(value))}
+                  />
                   <Bar
                     dataKey="total"
                     fill="#2563eb"
@@ -247,13 +369,20 @@ function Reports() {
             </thead>
 
             <tbody>
-              {transactions.map((item) => (
+              {filteredTransactions.map((item) => (
                 <tr key={item.id}>
                   <td>{formatDate(item.date)}</td>
+
                   <td>{item.description}</td>
 
                   <td>
-                    <span className="category-badge">{item.category}</span>
+                    <span
+                      className={`category-badge ${item.category
+                        .toLowerCase()
+                        .replace(/\s/g, "-")}`}
+                    >
+                      {item.category}
+                    </span>
                   </td>
 
                   <td>{item.type === "income" ? "Receita" : "Despesa"}</td>

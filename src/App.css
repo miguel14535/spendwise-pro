@@ -1586,4 +1586,38 @@ select option{
 .quick-periods button:hover {
   transform: translateY(-2px);
   background: rgba(37, 99, 235, 0.25);
+}.report-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+  align-items: end;
+}
+
+.report-filters div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.report-filters label {
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.report-filters input,
+.report-filters select {
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.04);
+  color: white;
+  outline: none;
+}
+
+.report-filters input:focus,
+.report-filters select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37,99,235,0.15);
 }
