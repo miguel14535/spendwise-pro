@@ -6,9 +6,11 @@ const sequelize = require("./config/db");
 
 require("./models/User");
 require("./models/Transaction");
+require("./models/Goal");
 
 const authRoutes = require("./routes/authRoutes");
 const transactionRoutes = require("./routes/transactionRoutes");
+const goalRoutes = require("./routes/goals");
 
 const app = express();
 
@@ -23,6 +25,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/transactions", transactionRoutes);
+app.use("/api/goals", goalRoutes);
 
 const PORT = process.env.PORT || 5000;
 

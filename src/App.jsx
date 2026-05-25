@@ -4,6 +4,7 @@ import { useState } from "react";
 import Dashboard from "./pages/Dashboard.jsx";
 import Reports from "./pages/Reports.jsx";
 import Settings from "./pages/Settings.jsx";
+import Goals from "./pages/Goals.jsx";
 
 import AuthPage from "./components/AuthPage.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
@@ -44,6 +45,15 @@ function App() {
           element={
             <ProtectedRoute user={user}>
               <Reports />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/goals"
+          element={
+            <ProtectedRoute user={user}>
+              <Goals />
             </ProtectedRoute>
           }
         />
