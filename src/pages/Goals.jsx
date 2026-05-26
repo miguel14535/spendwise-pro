@@ -1,14 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import toast, { Toaster } from "react-hot-toast";
 
 import Sidebar from "../components/Sidebar";
 import api from "../services/api";
+import { formatCurrency } from "../utils/currency";
 
 function Goals() {
-  const user = JSON.parse(
-    localStorage.getItem("spendwise_user")
-  );
+  const user = JSON.parse(localStorage.getItem("spendwise_user"));
 
   const [goals, setGoals] = useState([]);
+  const [editingGoal, setEditingGoal] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const [form, setForm] = useState({
     title: "",
@@ -16,21 +18,24 @@ function Goals() {
     current: "",
   });
 
-  async function loadGoals() {
-    try {
-      const response = await api.get(
-        `/goals/${user.id}`
-      );
-
-      setGoals(response.data);
-    } catch (error) {
-      console.log(error);
-    }
-  }
-
   useEffect(() => {
     loadGoals();
   }, []);
+
+  async function loadGoals() {
+    try {
+      setLoading(true);
+
+      const { data } = await api.get(`/goals/${user.id}`);
+
+      setGoals(data);
+    } catch (error) {
+      console.log(error);
+      toast.error("Erro ao carregar metas.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   function handleChange(e) {
     setForm({
@@ -39,39 +44,102 @@ function Goals() {
     });
   }
 
+  function resetForm() {
+    setForm({
+      title: "",
+      target: "",
+      current: "",
+    });
+
+    setEditingGoal(null);
+  }
+
+  function startEdit(goal) {
+    setEditingGoal(goal);
+
+    setForm({
+      title: goal.title,
+      target: goal.target,
+      current: goal.current,
+    });
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
 
+    if (!form.title || !form.target) {
+      toast.error("Preencha o nome e o valor objetivo.");
+      return;
+    }
+
     try {
-      await api.post("/goals", {
-        ...form,
+      const payload = {
+        title: form.title,
+        target: Number(String(form.target).replace(",", ".")),
+        current: Number(String(form.current || 0).replace(",", ".")),
         userId: user.id,
-      });
+      };
 
-      setForm({
-        title: "",
-        target: "",
-        current: "",
-      });
+      if (editingGoal) {
+        const { data } = await api.put(
+          `/goals/${editingGoal.id}`,
+          payload
+        );
 
-      loadGoals();
+        setGoals((prev) =>
+          prev.map((goal) =>
+            goal.id === editingGoal.id ? data : goal
+          )
+        );
+
+        toast.success("Meta atualizada com sucesso!");
+      } else {
+        const { data } = await api.post("/goals", payload);
+
+        setGoals((prev) => [data, ...prev]);
+
+        toast.success("Meta criada com sucesso!");
+      }
+
+      resetForm();
     } catch (error) {
-      alert("Erro ao salvar meta");
+      console.log(error);
+      toast.error("Erro ao salvar meta.");
     }
   }
 
   async function deleteGoal(id) {
+    const confirmDelete = window.confirm(
+      "Tem certeza que deseja remover esta meta?"
+    );
+
+    if (!confirmDelete) return;
+
     try {
       await api.delete(`/goals/${id}`);
 
-      loadGoals();
+      setGoals((prev) => prev.filter((goal) => goal.id !== id));
+
+      if (editingGoal?.id === id) {
+        resetForm();
+      }
+
+      toast.success("Meta removida com sucesso!");
     } catch (error) {
-      alert("Erro ao remover meta");
+      console.log(error);
+      toast.error("Erro ao remover meta.");
     }
   }
 
   return (
     <div className="app">
+      <Toaster position="top-right" />
+
       <Sidebar />
 
       <main className="main-content">
@@ -84,93 +152,159 @@ function Goals() {
             <h1>Metas</h1>
 
             <p>
-              Gerencie seus objetivos financeiros.
+              Gerencie seus objetivos financeiros e acompanhe
+              seu progresso em tempo real.
             </p>
           </div>
         </header>
 
         <section className="settings-grid">
           <div className="settings-card">
-            <h2>Nova Meta</h2>
+            <h2>
+              {editingGoal ? "Editar Meta" : "Nova Meta"}
+            </h2>
 
             <form
               className="goal-form"
               onSubmit={handleSubmit}
             >
+              <label>Nome da meta</label>
               <input
                 type="text"
                 name="title"
-                placeholder="Nome da meta"
+                placeholder="Ex: Reserva de emergência"
                 value={form.title}
                 onChange={handleChange}
               />
 
+              <label>Valor objetivo</label>
               <input
-                type="number"
+                type="text"
                 name="target"
-                placeholder="Valor objetivo"
+                placeholder="Ex: 10000"
                 value={form.target}
                 onChange={handleChange}
               />
 
+              <label>Valor atual</label>
               <input
-                type="number"
+                type="text"
                 name="current"
-                placeholder="Valor atual"
+                placeholder="Ex: 3500"
                 value={form.current}
                 onChange={handleChange}
               />
 
-              <button className="primary-btn">
-                Criar Meta
+              <button className="primary-btn" type="submit">
+                {editingGoal ? "Salvar Alterações" : "Criar Meta"}
               </button>
+
+              {editingGoal && (
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  onClick={resetForm}
+                >
+                  Cancelar edição
+                </button>
+              )}
             </form>
           </div>
 
           <div className="settings-card">
             <h2>Minhas Metas</h2>
 
-            <div className="goals-list">
-              {goals.map((goal) => {
-                const progress = Math.min(
-                  (goal.current / goal.target) * 100,
-                  100
-                );
+            {loading ? (
+              <p className="settings-muted">
+                Carregando metas...
+              </p>
+            ) : goals.length === 0 ? (
+              <p className="settings-muted">
+                Nenhuma meta cadastrada ainda.
+              </p>
+            ) : (
+              <div className="goals-list">
+                {goals.map((goal) => {
+                  const target = Number(goal.target || 0);
+                  const current = Number(goal.current || 0);
 
-                return (
-                  <div
-                    className="goal-item"
-                    key={goal.id}
-                  >
-                    <div className="goal-header">
-                      <h3>{goal.title}</h3>
+                  const progress =
+                    target > 0
+                      ? Math.min((current / target) * 100, 100)
+                      : 0;
 
-                      <button
-                        onClick={() =>
-                          deleteGoal(goal.id)
-                        }
-                      >
-                        ✕
-                      </button>
+                  const remaining = Math.max(target - current, 0);
+
+                  return (
+                    <div
+                      className="goal-item"
+                      key={goal.id}
+                    >
+                      <div className="goal-header">
+                        <div>
+                          <h3>{goal.title}</h3>
+
+                          <span>
+                            {progress.toFixed(1)}% concluído
+                          </span>
+                        </div>
+
+                        <div className="goal-actions">
+                          <button
+                            className="edit-goal-btn"
+                            onClick={() => startEdit(goal)}
+                          >
+                            Editar
+                          </button>
+
+                          <button
+                            className="delete-goal-btn"
+                            onClick={() => deleteGoal(goal.id)}
+                          >
+                            Excluir
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="progress-bar">
+                        <div
+                          className="progress-fill"
+                          style={{
+                            width: `${progress}%`,
+                          }}
+                        />
+                      </div>
+
+                      <div className="goal-stats">
+                        <div className="goal-box">
+                          <span>Objetivo</span>
+
+                          <strong>
+                            {formatCurrency(target)}
+                          </strong>
+                        </div>
+
+                        <div className="goal-box">
+                          <span>Atual</span>
+
+                          <strong>
+                            {formatCurrency(current)}
+                          </strong>
+                        </div>
+
+                        <div className="goal-box">
+                          <span>Restante</span>
+
+                          <strong>
+                            {formatCurrency(remaining)}
+                          </strong>
+                        </div>
+                      </div>
                     </div>
-
-                    <div className="progress-bar">
-                      <div
-                        className="progress-fill"
-                        style={{
-                          width: `${progress}%`,
-                        }}
-                      />
-                    </div>
-
-                    <p>
-                      R$ {goal.current} de R${" "}
-                      {goal.target}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </section>
       </main>

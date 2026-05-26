@@ -13,6 +13,8 @@ router.get("/:userId", async (req, res) => {
 
     res.json(goals);
   } catch (error) {
+    console.log(error);
+
     res.status(500).json({
       message: "Erro ao buscar metas",
     });
@@ -25,6 +27,8 @@ router.post("/", async (req, res) => {
 
     res.status(201).json(goal);
   } catch (error) {
+    console.log(error);
+
     res.status(500).json({
       message: "Erro ao criar meta",
     });
@@ -45,6 +49,8 @@ router.put("/:id", async (req, res) => {
 
     res.json(goal);
   } catch (error) {
+    console.log(error);
+
     res.status(500).json({
       message: "Erro ao atualizar meta",
     });
@@ -67,8 +73,10 @@ router.delete("/:id", async (req, res) => {
       message: "Meta removida",
     });
   } catch (error) {
+    console.log(error);
+
     res.status(500).json({
-      message: "Erro ao deletar meta",
+      message: "Erro ao remover meta",
     });
   }
 });
